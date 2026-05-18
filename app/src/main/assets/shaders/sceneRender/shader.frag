@@ -1,6 +1,5 @@
-layout(location = 0) in vec3 inColor;
-layout(location = 1) in vec2 inTexCoords;
-layout(location = 2) flat in uint inMaterialID;
+layout(location = 0) in vec2 inTexCoords;
+layout(location = 1) flat in uint inMaterialID;
 
 layout(location = 0) out vec4 outColor;
 

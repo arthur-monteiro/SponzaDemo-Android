@@ -1,3 +1,18 @@
+#ifndef __ANDROID__
+
+#include "SystemManager.h"
+
+int main()
+{
+    const std::unique_ptr<SystemManager> s(new SystemManager);
+    while (true)
+        s->frame();
+
+    return EXIT_SUCCESS;
+}
+
+#else
+
 #include <android/asset_manager_jni.h>
 #include <android/native_window_jni.h>
 #include <game-activity/native_app_glue/android_native_app_glue.h>
@@ -85,8 +100,8 @@ extern "C" bool VulkanMotionEventFilter(const GameActivityMotionEvent *event) {
  * This can also be achieved more verbosely by manually declaring JNI functions
  * and calling them from the Android application layer.
  */
-void android_main(struct android_app *state) {
-
+void android_main(struct android_app *state)
+{
     VulkanEngine engine{};
 
     engine.app = state;
@@ -116,3 +131,5 @@ void android_main(struct android_app *state) {
         }
     }
 }
+
+#endif

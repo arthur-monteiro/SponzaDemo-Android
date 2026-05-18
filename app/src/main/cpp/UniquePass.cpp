@@ -73,10 +73,10 @@ void UniquePass::initializeResources(const InitializationContext& context)
         };
 
         m_squareVertexBuffer.reset(Buffer::createBuffer(sizeof(Vertex2D) * vertices.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-        m_squareVertexBuffer->transferCPUMemoryWithStagingBuffer(vertices.data(), sizeof(Vertex2D) * vertices.size());
+        m_squareVertexBuffer->transferCPUMemoryWithStagingBuffer(vertices.data(), sizeof(Vertex2D) * vertices.size(), 0, 0);
 
         m_squareIndexBuffer.reset(Buffer::createBuffer(sizeof(uint32_t) * indices.size(), VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT));
-        m_squareIndexBuffer->transferCPUMemoryWithStagingBuffer(indices.data(), sizeof(uint32_t) * indices.size());
+        m_squareIndexBuffer->transferCPUMemoryWithStagingBuffer(indices.data(), sizeof(uint32_t) * indices.size(), 0, 0);
     }
 
     createGamepadRenderPipeline(context.swapChainWidth, context.swapChainHeight);
@@ -157,17 +157,17 @@ void UniquePass::record(const RecordContext& context)
     m_commandBuffer->beginCommandBuffer();
 
     std::vector<Wolf::ClearValue> clearValues(2);
-    clearValues[0] = {{{1.0f}}};
+    clearValues[0] = {{{0.0f}}};
     clearValues[1] = {{{0.1f, 0.1f, 0.1f, 1.0f}}};
     m_commandBuffer->beginRenderPass(*m_renderPass, *m_frameBuffers[frameBufferIdx], clearValues);
 
     // Scene
-    context.m_renderMeshList->draw(context, *m_commandBuffer, m_renderPass.get(), 0, 0, {}, {});
+    context.m_instanceMeshRenderer->draw(context, *m_commandBuffer, m_renderPass.get(), 0, 0, {}, {});
 
     // Gamepad
     m_commandBuffer->bindPipeline(m_gamepadRenderPipeline.createConstNonOwnerResource());
-    m_commandBuffer->bindVertexBuffer(*m_squareVertexBuffer);
-    m_commandBuffer->bindIndexBuffer(*m_squareIndexBuffer, IndexType::U32);
+    m_commandBuffer->bindVertexBuffer(*m_squareVertexBuffer, 0);
+    m_commandBuffer->bindIndexBuffer(*m_squareIndexBuffer, 0, IndexType::U32);
 
     for (uint32_t i = 0; i < m_gamepadRenderInfo.size(); ++i)
     {
@@ -185,7 +185,7 @@ void UniquePass::record(const RecordContext& context)
 
 void UniquePass::submit(const SubmitContext& context)
 {
-    const std::vector<const Semaphore*> waitSemaphores{ context.swapChainImageAvailableSemaphore };
+    const std::vector<const Semaphore*> waitSemaphores{ context.swapChainImageAvailableSemaphore, context.instanceRendererBuffersAvailableSemaphore };
     const std::vector<const Semaphore*> signalSemaphores{ getSemaphore(context.swapChainImageIndex) };
     m_commandBuffer->submit(waitSemaphores, signalSemaphores, context.frameFence);
 }
@@ -280,6 +280,7 @@ void UniquePass::updateGamepad(const ResourceNonOwner<Wolf::InputHandler>& input
     uint32_t frameIdx = inputHandler->getFrameIdx();
     for (uint32_t joystickIdx = 0; joystickIdx < Wolf::InputHandler::GAMEPAD_JOYSTICK_COUNT; ++joystickIdx)
     {
+#ifdef __ANDROID__
         m_joysticksPos[joystickIdx] = inputHandler->getJoystickPosForVirtualGamepad(joystickIdx);
         m_joysticksCenter[joystickIdx] = inputHandler->getJoystickCenterForVirtualGamepad(joystickIdx);
 
@@ -295,6 +296,7 @@ void UniquePass::updateGamepad(const ResourceNonOwner<Wolf::InputHandler>& input
 
             m_joysticksOpacity[joystickIdx] = opacity;
         }
+#endif
     }
 }
 
